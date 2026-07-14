@@ -1,20 +1,17 @@
 cask "antigravity-ide-linux" do
-  arch arm: "arm", intel: "x64"
-  livecheck_arch = on_arch_conditional arm: "arm64", intel: "x64"
   os linux: "linux"
 
   version "2.0.4,6381998290370560"
-  sha256 arm64_linux:  "30435204d14cdcd479b37fd9ae077425d7ab7bb90f99af2bc41638205e02fb37",
-         x86_64_linux: "66337d45f2472ce5e89f394e77aec74909aa1be0bb33c9f73299a95f458e6770"
+  sha256 "66337d45f2472ce5e89f394e77aec74909aa1be0bb33c9f73299a95f458e6770"
 
-  url "https://edgedl.me.gvt1.com/edgedl/release2/j0qc3/antigravity/stable/#{version.csv.first}-#{version.csv.second}/linux-#{arch}/Antigravity%20IDE.tar.gz",
+  url "https://edgedl.me.gvt1.com/edgedl/release2/j0qc3/antigravity/stable/#{version.csv.first}-#{version.csv.second}/linux-x64/Antigravity%20IDE.tar.gz",
       verified: "edgedl.me.gvt1.com/edgedl/release2/j0qc3/antigravity/"
   name "Google Antigravity IDE"
   desc "AI Coding Agent IDE"
   homepage "https://antigravity.google/product/antigravity-ide"
 
   livecheck do
-    url "https://antigravity-ide-auto-updater-974169037036.us-central1.run.app/api/update/linux-#{livecheck_arch}/stable/latest"
+    url "https://antigravity-ide-auto-updater-974169037036.us-central1.run.app/api/update/linux-x64/stable/latest"
     regex(%r{/stable/([^/]+)/}i)
     strategy :json do |json, regex|
       match = json["url"]&.match(regex)

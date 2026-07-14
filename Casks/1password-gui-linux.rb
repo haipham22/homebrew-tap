@@ -1,18 +1,12 @@
 cask "1password-gui-linux" do
-  arch intel: "x86_64", arm: "aarch64"
   os linux: "linux"
 
   version "8.12.24"
-  sha256 arm64_linux:  "11b75ecefe1d65c4f7d37e617fd3d0b26d5a86724b5e9c5059ce2f55c52f8d18",
-         x86_64_linux: "5f3c52d5f2eea80d60c5d76b313a1ea8efcc235453dace67b5a3d0dedaf189e2"
+  sha256 "5f3c52d5f2eea80d60c5d76b313a1ea8efcc235453dace67b5a3d0dedaf189e2"
 
-  arch_suffix =
-    case arch
-    when "aarch64" then "arm64"
-    when "x86_64" then "x64"
-    end
+  arch_suffix = "x64"
 
-  url "https://downloads.1password.com/linux/tar/stable/#{arch}/1password-#{version}.#{arch_suffix}.tar.gz"
+  url "https://downloads.1password.com/linux/tar/stable/x86_64/1password-#{version}.#{arch_suffix}.tar.gz"
   name "1Password"
   desc "Password manager that keeps all passwords secure behind one password"
   homepage "https://1password.com/"

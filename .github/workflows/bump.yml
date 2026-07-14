@@ -37,8 +37,25 @@ jobs:
           rm -rf "$CORE_TAP"
           mv homebrew-core "$CORE_TAP"
 
-      - name: Bump outdated casks (open PRs, no fork)
+      - name: Bump outdated casks (push branches)
+        # `--open-pr` pushes a bump-<cask>-<ver> branch per outdated cask. Its
+        # own PR creation rejects the default GITHUB_TOKEN, so we open PRs with
+        # `gh` in the next step. `|| true` so the fallback still runs.
         env:
           HOMEBREW_DEVELOPER: 1
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: brew bump --tap ${{ github.repository }} --open-pr --no-fork
+        run: brew bump --tap ${{ github.repository }} --open-pr --no-fork || true
+
+      - name: Open PRs for bump-* branches (gh fallback)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for b in $(gh api "repos/${{ github.repository }}/branches" --jq '.[].name' | grep '^bump-'); do
+            if gh pr list --repo "${{ github.repository }}" --head "$b" --state all --json number | grep -q number; then
+              echo "PR already exists for $b, skipping"
+              continue
+            fi
+            echo "Opening PR for $b"
+            gh pr create --repo "${{ github.repository }}" --head "$b" --base main \
+              --title "$b" --body "Automated version bump via \`brew bump\`."
+          done

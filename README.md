@@ -27,6 +27,8 @@ brew install --cask haipham22/tap/antigravity-ide-linux
 | `antigravity-linux` | Google Antigravity (hub) | `antigravity` |
 | `antigravity-ide-linux` | Google Antigravity IDE | `antigravity-ide` (`agy-ide`) |
 
+> **x86_64-only.** All casks ship the x86_64 build (Steam Deck + Ubuntu desktop). No arm64 — dropping it also sidesteps a current `brew bump` bug with multi-arch casks so autobump works.
+
 ## Ubuntu notes
 
 This tap exists because the upstream [ublue-os](https://github.com/ublue-os/homebrew-tap) casks **launch on Steam Deck but crash on Ubuntu** — and the reason is the Chromium sandbox:

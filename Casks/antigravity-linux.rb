@@ -1,20 +1,17 @@
 cask "antigravity-linux" do
-  arch arm: "arm", intel: "x64"
-  livecheck_arch = on_arch_conditional arm: "arm64", intel: "x64"
   os linux: "linux"
 
   version "2.0.6,5413878570549248"
-  sha256 arm64_linux:  "02fc7f47650582ac72b845853b514de6c83ea7a4cd8a8d739e1a8688db2f45a9",
-         x86_64_linux: "ad1e04535149b07c27030eb1ead40f4efda388cb39020bcbb9accdfb49e44cc5"
+  sha256 "ad1e04535149b07c27030eb1ead40f4efda388cb39020bcbb9accdfb49e44cc5"
 
-  url "https://storage.googleapis.com/antigravity-public/antigravity-hub/#{version.csv.first}-#{version.csv.second}/linux-#{arch}/Antigravity.tar.gz",
+  url "https://storage.googleapis.com/antigravity-public/antigravity-hub/#{version.csv.first}-#{version.csv.second}/linux-x64/Antigravity.tar.gz",
       verified: "storage.googleapis.com/antigravity-public/antigravity-hub/"
   name "Google Antigravity"
   desc "Agent orchestration platform"
   homepage "https://antigravity.google/product/antigravity-2"
 
   livecheck do
-    url "https://antigravity-auto-updater-974169037036.us-central1.run.app/api/update/linux-#{livecheck_arch}/stable/latest"
+    url "https://antigravity-auto-updater-974169037036.us-central1.run.app/api/update/linux-x64/stable/latest"
     regex(%r{/antigravity-hub/([^/]+)/}i)
     strategy :json do |json, regex|
       match = json["url"]&.match(regex)
@@ -24,7 +21,7 @@ cask "antigravity-linux" do
     end
   end
 
-  binary "#{staged_path}/Antigravity-#{arch}/antigravity"
+  binary "#{staged_path}/Antigravity-x64/antigravity"
   artifact "antigravity.desktop",
            target: "#{Dir.home}/.local/share/applications/antigravity.desktop"
   artifact "antigravity-url-handler.desktop",
@@ -33,7 +30,7 @@ cask "antigravity-linux" do
            target: "#{Dir.home}/.local/share/icons/hicolor/512x512/apps/antigravity.png"
 
   preflight do
-    app_root = "#{staged_path}/Antigravity-#{arch}"
+    app_root = "#{staged_path}/Antigravity-x64"
     app_update_yml = "#{app_root}/resources/app-update.yml"
     asar_path = "#{app_root}/resources/app.asar"
 
@@ -99,7 +96,7 @@ cask "antigravity-linux" do
     # so Electron can't fall back to the userns sandbox and instead aborts unless
     # chrome-sandbox is owned by root with the setuid bit (mode 4755). SteamOS
     # allows userns, so this is a no-op there. Requires sudo at install time.
-    sandbox = "#{staged_path}/Antigravity-#{arch}/chrome-sandbox"
+    sandbox = "#{staged_path}/Antigravity-x64/chrome-sandbox"
     if File.exist?(sandbox)
       system "sudo", "chown", "root:root", sandbox
       system "sudo", "chmod", "4755", sandbox
