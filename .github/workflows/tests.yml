@@ -5,14 +5,22 @@ on:
   pull_request:
 
 jobs:
-  audit:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: Homebrew/actions/setup-homebrew@master
-      - name: Audit formula
-        run: brew audit --strict --online ./Formula/jetbrains-toolbox.rb
+      - name: Register this checkout as the tap
+        run: |
+          TAP_DIR="$(brew --repository haipham22/tap)"
+          mkdir -p "$(dirname "$TAP_DIR")"
+          ln -s "$GITHUB_WORKSPACE" "$TAP_DIR"
+          brew tap
+      - name: Audit
+        # non-strict: validate URL/sha/homepage correctness without
+        # license pedantry (JetBrains Toolbox is proprietary, no SPDX id)
+        run: brew audit --online jetbrains-toolbox
       - name: Install + test
         run: |
-          brew install ./Formula/jetbrains-toolbox.rb
+          brew install jetbrains-toolbox
           brew test jetbrains-toolbox
