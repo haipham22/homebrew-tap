@@ -87,6 +87,19 @@ cask "antigravity-ide-linux" do
     EOS
   end
 
+  postflight do
+    # Chromium SUID sandbox: see antigravity-linux. Ubuntu 24.04 blocks
+    # unprivileged userns, so Electron needs chrome-sandbox owned by root
+    # with mode 4755 or it aborts on launch. No-op on SteamOS.
+    app_root = "#{staged_path}/Antigravity IDE"
+    sandbox = ["#{app_root}/chrome-sandbox", "#{app_root}/bin/chrome-sandbox"]
+                .find { |p| File.exist?(p) }
+    if sandbox
+      system "sudo", "chown", "root:root", sandbox
+      system "sudo", "chmod", "4755", sandbox
+    end
+  end
+
   zap trash: [
     "~/.antigravity-ide",
     "~/.antigravity-ide-server",
@@ -96,6 +109,10 @@ cask "antigravity-ide-linux" do
   ]
 
   caveats <<~EOS
+    Installing this cask runs `sudo` once to set the setuid bit on the bundled
+    chrome-sandbox (required to launch on Ubuntu). You will be prompted for your
+    password.
+
     If authentication fails or the browser doesn't open Antigravity IDE, try running:
       xdg-mime default antigravity-ide-url-handler.desktop x-scheme-handler/antigravity-ide
       update-desktop-database ~/.local/share/applications

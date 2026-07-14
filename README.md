@@ -27,16 +27,21 @@ brew install --cask haipham22/tap/antigravity-ide-linux
 | `antigravity-linux` | Google Antigravity (hub) | `antigravity` |
 | `antigravity-ide-linux` | Google Antigravity IDE | `antigravity-ide` (`agy-ide`) |
 
-## Ubuntu notes (launch crash fix)
+## Ubuntu notes
 
-On a minimal Ubuntu, these apps may **open then immediately crash** because the bundled runtimes need a few system libraries that SteamOS ships by default. Install them once:
+This tap exists because the upstream [ublue-os](https://github.com/ublue-os/homebrew-tap) casks **launch on Steam Deck but crash on Ubuntu** — and the reason is the Chromium sandbox:
+
+- SteamOS allows unprivileged user namespaces, so Electron falls back to the userns sandbox and never needs `chrome-sandbox`.
+- Ubuntu 24.04 blocks unprivileged userns via AppArmor, so Electron requires the `chrome-sandbox` helper to be owned by root with the setuid bit (mode `4755`). Without it the app opens then dies with `FATAL: ...setuid_sandbox_host...`.
+
+The `antigravity-linux` and `antigravity-ide-linux` casks here add a `postflight` that runs `sudo` once to set that bit — **you'll be prompted for your password at install time**. `1password-gui-linux` already does the same. VS Code and JetBrains Toolbox launch on Ubuntu without any extra steps.
+
+On a truly minimal Ubuntu (no GUI libs), also install the usual runtime deps once:
 
 ```bash
 sudo apt-get install -y libxtst6 libxrender1 libxi6 libxss1 \
   libnss3 libnspr4 libasound2t64 libgbm1 libdrm2 libxkbcommon0 libfontconfig1
 ```
-
-Electron apps (Antigravity, VS Code) on Ubuntu 24.04 can also hit the AppArmor unprivileged-userns sandbox restriction. If one crashes at startup, either allow user namespaces or launch with `--no-sandbox`.
 
 ## Steam Deck notes
 

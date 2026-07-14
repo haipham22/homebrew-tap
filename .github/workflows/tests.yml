@@ -28,10 +28,6 @@ jobs:
   install-ubuntu:
     name: install + launch probe (Ubuntu)
     runs-on: ubuntu-24.04
-    # Diagnostic stage: reveals the real Ubuntu launch-crash cause (missing
-    # libs / Electron userns sandbox). Steps are best-effort so CI stays green;
-    # read the logs to drive fixes.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v5
       - uses: Homebrew/actions/setup-homebrew@6315ef70a8bfcd2c71104383846591ac113ace33
@@ -46,22 +42,28 @@ jobs:
           sudo apt-get install -y bubblewrap xvfb \
             libxtst6 libxrender1 libxi6 libxss1 libnss3 libnspr4 \
             libasound2t64 libgbm1 libdrm2 libxkbcommon0 libfontconfig1
-      - name: Install casks + bounded launch probe
+      - name: Install casks + launch probe (fails on sandbox crash)
         env:
           HOMEBREW_NO_AUTO_UPDATE: 1
         run: |
-          set +e
+          set -uo pipefail
+          fail=0
           probe() {
             local cask="$1" bin="$2"
             echo "===== $cask (bin: $bin) ====="
             brew install --cask "haipham22/tap/$cask" 2>&1 | tail -4
-            echo "--- launch probe (stderr captured) ---"
-            timeout 25 xvfb-run -a "$bin" --version 2>&1 | head -25
-            echo "--- ldd $bin (missing libs => 'not found') ---"
-            ldd "$(command -v "$bin")" 2>&1 | grep -iE "not found|=>" | head -25
+            echo "--- launch probe ---"
+            local out
+            out=$(timeout 25 xvfb-run -a "$bin" --version 2>&1 | head -25 || true)
+            echo "$out"
+            if printf '%s' "$out" | grep -qiE 'setuid_sandbox_host|Trace/breakpoint trap|FATAL:sandbox'; then
+              echo "::error::$cask still crashes (SUID sandbox not configured)"
+              fail=1
+            fi
             echo
           }
           probe jetbrains-toolbox-linux  jetbrains-toolbox
           probe visual-studio-code-linux code
           probe antigravity-linux         antigravity
           probe antigravity-ide-linux     antigravity-ide
+          exit "$fail"

@@ -94,6 +94,18 @@ cask "antigravity-linux" do
     FileUtils.touch "#{staged_path}/antigravity.png" unless File.exist?("#{staged_path}/antigravity.png")
   end
 
+  postflight do
+    # Chromium SUID sandbox: Ubuntu 24.04 blocks unprivileged user namespaces,
+    # so Electron can't fall back to the userns sandbox and instead aborts unless
+    # chrome-sandbox is owned by root with the setuid bit (mode 4755). SteamOS
+    # allows userns, so this is a no-op there. Requires sudo at install time.
+    sandbox = "#{staged_path}/Antigravity-#{arch}/chrome-sandbox"
+    if File.exist?(sandbox)
+      system "sudo", "chown", "root:root", sandbox
+      system "sudo", "chmod", "4755", sandbox
+    end
+  end
+
   zap trash: [
     "~/.antigravity",
     "~/.config/Antigravity",
@@ -102,6 +114,10 @@ cask "antigravity-linux" do
   ]
 
   caveats <<~EOS
+    Installing this cask runs `sudo` once to set the setuid bit on the bundled
+    chrome-sandbox (required to launch on Ubuntu). You will be prompted for your
+    password.
+
     If authentication fails or the browser doesn't open Antigravity, try running:
       xdg-mime default antigravity-url-handler.desktop x-scheme-handler/antigravity
       update-desktop-database ~/.local/share/applications
