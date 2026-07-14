@@ -6,10 +6,12 @@ Personal [Homebrew](https://brew.sh) tap — Linux-first formulae for **Ubuntu**
 
 ```bash
 brew tap haipham22/tap
-brew install jetbrains-toolbox
+brew install haipham22/tap/jetbrains-toolbox
 ```
 
 Then launch `jetbrains-toolbox`. The app self-updates after first run.
+
+> **Why the fully-qualified name?** There's an official macOS cask also called `jetbrains-toolbox` (`homebrew/cask/jetbrains-toolbox`). The bare name `brew install jetbrains-toolbox` resolves to that cask and fails on Linux with *"This cask requires macOS."* Qualifying with `haipham22/tap/jetbrains-toolbox` (or passing `--formula`) picks this Linux formula instead.
 
 ## Formulae
 
@@ -36,6 +38,6 @@ Add the `eval "$(~/.linuxbrew/bin/brew shellenv)"` line to `~/.bashrc` / `~/.zsh
 ## Updating a formula
 
 ```bash
-brew livecheck jetbrains-toolbox      # show latest vs. pinned
-brew bump-formula-pr jetbrains-toolbox  # or edit Formula/*.rb and bump version + sha256 by hand
+brew livecheck haipham22/tap/jetbrains-toolbox      # show latest vs. pinned
+brew bump-formula-pr haipham22/tap/jetbrains-toolbox  # or edit Formula/*.rb and bump version + sha256 by hand
 ```

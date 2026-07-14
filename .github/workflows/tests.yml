@@ -19,8 +19,10 @@ jobs:
       - name: Audit
         # non-strict: validate URL/sha/homepage correctness without
         # license pedantry (JetBrains Toolbox is proprietary, no SPDX id)
-        run: brew audit --online jetbrains-toolbox
+        run: brew audit --online haipham22/tap/jetbrains-toolbox
       - name: Install + test
+        # Fully-qualified name: the bare name shadows to the official
+        # macOS cask homebrew/cask/jetbrains-toolbox, which fails on Linux.
         run: |
-          brew install jetbrains-toolbox
-          brew test jetbrains-toolbox
+          brew install haipham22/tap/jetbrains-toolbox
+          brew test haipham22/tap/jetbrains-toolbox
