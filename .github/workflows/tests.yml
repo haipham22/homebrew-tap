@@ -66,4 +66,5 @@ jobs:
           probe visual-studio-code-linux code
           probe antigravity-linux         antigravity
           probe antigravity-ide-linux     antigravity-ide
+          probe teams-for-linux           teams-for-linux
           exit "$fail"
