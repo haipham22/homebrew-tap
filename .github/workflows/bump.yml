@@ -1,0 +1,44 @@
+name: autobump
+
+on:
+  workflow_dispatch:
+  schedule:
+    # daily at 03:17 UTC (off the :00 mark)
+    - cron: "17 3 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@6315ef70a8bfcd2c71104383846591ac113ace33
+
+      - name: Configure git
+        uses: Homebrew/actions/git-user-config@6315ef70a8bfcd2c71104383846591ac113ace33
+
+      - name: Checkout homebrew-core (cross-reference for brew bump)
+        uses: actions/checkout@v5
+        with:
+          repository: Homebrew/homebrew-core
+          path: homebrew-core
+          fetch-depth: 1
+          sparse-checkout: |
+            Formula/
+
+      - name: Move homebrew-core to tap directory
+        run: |
+          BREW_REPO="$(brew --repo)"
+          CORE_TAP="$BREW_REPO/Library/Taps/homebrew/homebrew-core"
+          mkdir -p "$(dirname "$CORE_TAP")"
+          rm -rf "$CORE_TAP"
+          mv homebrew-core "$CORE_TAP"
+
+      - name: Bump outdated casks (open PRs, no fork)
+        env:
+          HOMEBREW_DEVELOPER: 1
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: brew bump --tap ${{ github.repository }} --open-pr --no-fork

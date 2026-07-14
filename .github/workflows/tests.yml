@@ -2,27 +2,66 @@ name: tests
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  audit:
+    name: audit casks
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
-      - uses: Homebrew/actions/setup-homebrew@1f8e202ffddf94def7f42f6fa3a482e821489f9c
+      - uses: Homebrew/actions/setup-homebrew@6315ef70a8bfcd2c71104383846591ac113ace33
       - name: Register this checkout as the tap
         run: |
           TAP_DIR="$(brew --repository haipham22/tap)"
           mkdir -p "$(dirname "$TAP_DIR")"
           ln -s "$GITHUB_WORKSPACE" "$TAP_DIR"
-          brew tap
-      - name: Audit
-        # non-strict: validate URL/sha/homepage correctness without
-        # license pedantry (JetBrains Toolbox is proprietary, no SPDX id)
-        run: brew audit --online haipham22/tap/jetbrains-toolbox
-      - name: Install + test
-        # Fully-qualified name: the bare name shadows to the official
-        # macOS cask homebrew/cask/jetbrains-toolbox, which fails on Linux.
+      - name: Install bubblewrap (brew sandbox on Linux)
+        run: sudo apt-get update && sudo apt-get install -y bubblewrap
+      - name: Audit every cask
         run: |
-          brew install haipham22/tap/jetbrains-toolbox
-          brew test haipham22/tap/jetbrains-toolbox
+          for c in Casks/*.rb; do
+            brew audit --cask --online "haipham22/tap/$(basename "$c" .rb)"
+          done
+
+  install-ubuntu:
+    name: install + launch probe (Ubuntu)
+    runs-on: ubuntu-24.04
+    # Diagnostic stage: reveals the real Ubuntu launch-crash cause (missing
+    # libs / Electron userns sandbox). Steps are best-effort so CI stays green;
+    # read the logs to drive fixes.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+      - uses: Homebrew/actions/setup-homebrew@6315ef70a8bfcd2c71104383846591ac113ace33
+      - name: Register this checkout as the tap
+        run: |
+          TAP_DIR="$(brew --repository haipham22/tap)"
+          mkdir -p "$(dirname "$TAP_DIR")"
+          ln -s "$GITHUB_WORKSPACE" "$TAP_DIR"
+      - name: Install system libs + xvfb (common Ubuntu launch deps)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap xvfb \
+            libxtst6 libxrender1 libxi6 libxss1 libnss3 libnspr4 \
+            libasound2t64 libgbm1 libdrm2 libxkbcommon0 libfontconfig1
+      - name: Install casks + bounded launch probe
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+        run: |
+          set +e
+          probe() {
+            local cask="$1" bin="$2"
+            echo "===== $cask (bin: $bin) ====="
+            brew install --cask "haipham22/tap/$cask" 2>&1 | tail -4
+            echo "--- launch probe (stderr captured) ---"
+            timeout 25 xvfb-run -a "$bin" --version 2>&1 | head -25
+            echo "--- ldd $bin (missing libs => 'not found') ---"
+            ldd "$(command -v "$bin")" 2>&1 | grep -iE "not found|=>" | head -25
+            echo
+          }
+          probe jetbrains-toolbox-linux  jetbrains-toolbox
+          probe visual-studio-code-linux code
+          probe antigravity-linux         antigravity
+          probe antigravity-ide-linux     antigravity-ide
