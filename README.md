@@ -15,6 +15,7 @@ brew install --cask haipham22/tap/jetbrains-toolbox-linux
 brew install --cask haipham22/tap/1password-gui-linux
 brew install --cask haipham22/tap/antigravity-linux
 brew install --cask haipham22/tap/antigravity-ide-linux
+brew install --cask haipham22/tap/teams-for-linux
 ```
 
 ## Casks
@@ -26,6 +27,7 @@ brew install --cask haipham22/tap/antigravity-ide-linux
 | `1password-gui-linux` | 1Password | `1password` |
 | `antigravity-linux` | Google Antigravity (hub) | `antigravity` |
 | `antigravity-ide-linux` | Google Antigravity IDE | `antigravity-ide` (`agy-ide`) |
+| `teams-for-linux` | Teams for Linux (unofficial MS Teams) | `teams-for-linux` |
 
 > **x86_64-only.** All casks ship the x86_64 build (Steam Deck + Ubuntu desktop). No arm64 — dropping it also sidesteps a current `brew bump` bug with multi-arch casks so autobump works.
 
