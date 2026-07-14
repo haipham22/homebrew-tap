@@ -37,6 +37,12 @@ jobs:
           rm -rf "$CORE_TAP"
           mv homebrew-core "$CORE_TAP"
 
+      - name: Pre-install python@3.12 (brew bump livecheck dep)
+        # `brew bump` internally installs python@3.12 for livecheck strategies
+        # and that install fails mid-run -> sha256 computed as nil. Install it
+        # up front so the dependency is already satisfied.
+        run: brew install python@3.12
+
       - name: Bump outdated casks (open PRs, no fork)
         env:
           HOMEBREW_DEVELOPER: 1
