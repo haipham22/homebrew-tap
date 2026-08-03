@@ -1,8 +1,8 @@
 cask "teams-for-linux" do
   os linux: "linux"
 
-  version "2.11.1"
-  sha256 "6baec9f22bdd57e5d38ef054b0d609e52baa2354ca3732e281716856a6361e26"
+  version "2.14.1"
+  sha256 "3f38fdd2cc4e9bc8e88eac77b2bfdb5f43d14aae93ac4d50635c606712e5f3fe"
 
   url "https://github.com/IsmaelMartinez/teams-for-linux/releases/download/v#{version}/teams-for-linux-#{version}.tar.gz"
   name "Teams for Linux"
@@ -21,7 +21,7 @@ cask "teams-for-linux" do
   preflight do
     app_root = "#{staged_path}/teams-for-linux-#{version}"
     # Disable Electron auto-update; Homebrew manages this install.
-    FileUtils.rm_f "#{app_root}/resources/app-update.yml"
+    FileUtils.rm("#{app_root}/resources/app-update.yml")
 
     FileUtils.mkdir_p "#{Dir.home}/.local/share/applications"
     # ponytail: Icon is name-based; the bundled icon lives inside app.asar.
