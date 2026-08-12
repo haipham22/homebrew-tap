@@ -1,8 +1,8 @@
 cask "1password-gui-linux" do
   os linux: "linux"
 
-  version "8.12.28"
-  sha256 "2695d72e98c039f061fa8735608071a816616b4d88bb3725561411885dbd57a7"
+  version "8.12.32"
+  sha256 "760e3649034c4bbefedfddec0cfebac1e677dd55482a3390119c1a2bcda27d97"
 
   arch_suffix = "x64"
 
