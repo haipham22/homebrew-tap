@@ -1,8 +1,8 @@
 cask "antigravity-ide-linux" do
   os linux: "linux"
 
-  version "2.1.1,6123990880747520"
-  sha256 "5b2cebf7d33a68d003fd8f1fa988d1600905ace22504a085e5384214290878bd"
+  version "2.5.5,4923483625488384"
+  sha256 "0c5233b297d2b3aebb61af49f8944012c2953d361a5ebb16978490636917f831"
 
   url "https://edgedl.me.gvt1.com/edgedl/release2/j0qc3/antigravity/stable/#{version.csv.first}-#{version.csv.second}/linux-x64/Antigravity%20IDE.tar.gz",
       verified: "edgedl.me.gvt1.com/edgedl/release2/j0qc3/antigravity/"
