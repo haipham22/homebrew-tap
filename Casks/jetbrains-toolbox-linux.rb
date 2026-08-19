@@ -1,6 +1,6 @@
 cask "jetbrains-toolbox-linux" do
-  version "3.6.1.85592"
-  sha256 "9282664b47b6d14c96e865a0b54738d4252a9c2824c20e99101eaba0575c183d"
+  version "3.7.0.87111"
+  sha256 "6e9b3d17fe5081a428325aa62f67717e4bbe0c2cfb7bc0745fc39c987a0a7b1e"
 
   url "https://download.jetbrains.com/toolbox/jetbrains-toolbox-#{version}.tar.gz"
   name "JetBrains Toolbox"
@@ -43,6 +43,8 @@ cask "jetbrains-toolbox-linux" do
     EOS
   end
 
+  zap trash: "~/.config/JetBrains/ToolboxApp"
+
   caveats <<~EOS
     On a minimal Ubuntu install, Toolbox may open then immediately crash because
     the bundled JBR needs a few system libraries. If that happens, install them:
@@ -52,6 +54,4 @@ cask "jetbrains-toolbox-linux" do
 
     Toolbox self-updates after first launch; use `brew upgrade` to bump the bootstrap.
   EOS
-
-  zap trash: "~/.config/JetBrains/ToolboxApp"
 end
