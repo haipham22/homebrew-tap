@@ -21,6 +21,19 @@ cask "orca" do
            target: "#{Dir.home}/.local/share/applications/orca.desktop"
 
   preflight do
+    # Extract only the icon from the AppImage (offset = first hsqs magic past
+    # the ELF headers). unsquashfs avoids running the AppImage at install time.
+    offset = File.open("#{staged_path}/orca-linux.AppImage", "rb") do |f|
+      data = f.read(512_000)
+      data.index("hsqs", 186_344) or raise "squashfs offset not found"
+    end
+    system "unsquashfs", "-o", offset.to_s, "-f", "-d", "#{staged_path}/icon",
+           "#{staged_path}/orca-linux.AppImage",
+           "usr/share/icons/hicolor/512x512/apps/orca-ide.png"
+    FileUtils.cp "#{staged_path}/icon/usr/share/icons/hicolor/512x512/apps/orca-ide.png",
+                 "#{staged_path}/orca-ide.png"
+    FileUtils.rm_rf "#{staged_path}/icon"
+
     FileUtils.mkdir_p "#{Dir.home}/.local/share/applications"
     FileUtils.mkdir_p "#{Dir.home}/.local/share/icons/hicolor/512x512/apps"
     File.write("#{staged_path}/orca.desktop", <<~EOS)
