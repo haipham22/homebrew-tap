@@ -14,7 +14,7 @@ cask "orca" do
     strategy :github_latest
   end
 
-  binary "orca-linux.AppImage", target: "orca"
+  binary "orca-linux.AppImage", target: "orca-ide"
   artifact "orca-ide.png",
            target: "#{Dir.home}/.local/share/icons/hicolor/512x512/apps/orca-ide.png"
   artifact "orca.desktop",
@@ -40,7 +40,7 @@ cask "orca" do
       [Desktop Entry]
       Name=Orca
       Comment=Next-gen IDE for parallel agentic development
-      Exec=#{HOMEBREW_PREFIX}/bin/orca --no-sandbox %U
+      Exec=#{HOMEBREW_PREFIX}/bin/orca-ide --no-sandbox %U
       Icon=#{Dir.home}/.local/share/icons/hicolor/512x512/apps/orca-ide.png
       Type=Application
       StartupNotify=true
