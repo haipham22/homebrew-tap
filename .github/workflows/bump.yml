@@ -38,31 +38,27 @@ jobs:
           mv homebrew-core "$CORE_TAP"
 
       - name: Bump outdated casks (push branches)
-        # `--open-pr` pushes a bump-<cask>-<ver> branch per outdated cask. Its
-        # own PR creation rejects the default GITHUB_TOKEN, so we open PRs with
-        # `gh` in the next step. `|| true` so the fallback still runs.
+        # `--open-pr` pushes a bump-<cask>-<ver> branch per outdated cask and
+        # opens its own PR when it can. `|| true` so the merge step still runs.
         env:
           HOMEBREW_DEVELOPER: 1
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: brew bump --tap ${{ github.repository }} --open-pr --no-fork || true
 
-      - name: Open + merge PRs for bump-* branches (gh fallback)
+      - name: Merge PRs for bump-* branches (gh fallback)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           for b in $(gh api "repos/${{ github.repository }}/branches" --jq '.[].name' | grep '^bump-'); do
-            if gh pr list --repo "${{ github.repository }}" --head "$b" --state all --json number | grep -q number; then
-              echo "PR already exists for $b, skipping"
-              continue
+            if ! gh pr list --repo "${{ github.repository }}" --head "$b" --state open --json number | grep -q number; then
+              echo "Opening PR for $b"
+              gh pr create --repo "${{ github.repository }}" --head "$b" --base main \
+                --title "$b" --body "Automated version bump via \`brew bump\`." \
+                || { echo "::warning::gh pr create failed for $b"; continue; }
             fi
-            echo "Opening + merging PR for $b"
-            if gh pr create --repo "${{ github.repository }}" --head "$b" --base main \
-              --title "$b" --body "Automated version bump via \`brew bump\`."; then
-              # GITHUB_TOKEN PRs don't trigger workflows, so the PR checks stay
-              # empty — merge immediately; tests.yml runs on push to main.
-              gh pr merge "$b" --repo "${{ github.repository }}" --squash --delete-branch \
-                || echo "::warning::merge failed for $b (PR left open)"
-            else
-              echo "::warning::gh pr create failed for $b"
-            fi
+            echo "Merging PR for $b"
+            # GITHUB_TOKEN PRs don't trigger workflows, so the PR checks stay
+            # empty — merge immediately; tests.yml runs on push to main.
+            gh pr merge "$b" --repo "${{ github.repository }}" --squash --delete-branch \
+              || echo "::warning::merge failed for $b (PR left open)"
           done
