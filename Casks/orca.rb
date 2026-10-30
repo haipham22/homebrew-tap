@@ -6,6 +6,11 @@ cask "orca" do
          intel:        "bc37fca76ef0db34a5c8db1d83d61e242d1c13145ae0d1d8e0f8357d77b7b10e",
          x86_64_linux: "9abb595010afba8922b4a9e92fab99827ee43e97c1e14acbf6a6c2738aa9e12e"
 
+  # No linux-arm build upstream; declare it so brew bump stops probing that arch.
+  on_linux do
+    depends_on arch: :x86_64
+  end
+
   if OS.mac?
     url "https://github.com/stablyai/orca/releases/download/v#{version}/orca-macos#{arch}.dmg"
     app "Orca.app"

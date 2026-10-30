@@ -6,6 +6,11 @@ cask "saint" do
          intel:        "3f52791cba5ce333d84005814005473524af8dfd72e56c0dcd4265312f8d1d0d",
          x86_64_linux: "76143c82af04762609714a5c8e50b5c2310165e21d11247822a150e668838f57"
 
+  # No linux-arm build upstream; declare it so brew bump stops probing that arch.
+  on_linux do
+    depends_on arch: :x86_64
+  end
+
   if OS.mac?
     url "https://github.com/Locotine/saint-hyper-agent/releases/download/v#{version}/Saint-#{version}#{arch}.dmg"
     app "Saint.app"
