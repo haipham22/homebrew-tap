@@ -46,7 +46,7 @@ jobs:
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: brew bump --tap ${{ github.repository }} --open-pr --no-fork || true
 
-      - name: Open PRs for bump-* branches (gh fallback)
+      - name: Open + merge PRs for bump-* branches (gh fallback)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -55,7 +55,14 @@ jobs:
               echo "PR already exists for $b, skipping"
               continue
             fi
-            echo "Opening PR for $b"
-            gh pr create --repo "${{ github.repository }}" --head "$b" --base main \
-              --title "$b" --body "Automated version bump via \`brew bump\`."
+            echo "Opening + merging PR for $b"
+            if gh pr create --repo "${{ github.repository }}" --head "$b" --base main \
+              --title "$b" --body "Automated version bump via \`brew bump\`."; then
+              # GITHUB_TOKEN PRs don't trigger workflows, so the PR checks stay
+              # empty — merge immediately; tests.yml runs on push to main.
+              gh pr merge "$b" --repo "${{ github.repository }}" --squash --delete-branch \
+                || echo "::warning::merge failed for $b (PR left open)"
+            else
+              echo "::warning::gh pr create failed for $b"
+            fi
           done
