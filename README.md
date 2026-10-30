@@ -4,7 +4,7 @@ Personal [Homebrew](https://brew.sh) tap — **Linux casks** for **Ubuntu** and 
 
 These are Linux GUI-app casks (VS Code, JetBrains Toolbox, 1Password, Google Antigravity) — the kind of apps that don't run well as Flatpaks. The casks are ported from [ublue-os/homebrew-tap](https://github.com/ublue-os/homebrew-tap) and tuned to also work on plain Ubuntu (not just immutable distros).
 
-> Cask names carry a `-linux` suffix to avoid colliding with the official macOS casks (e.g. `homebrew/cask/jetbrains-toolbox`). macOS users should use the official casks; this tap is Linux-only (`os linux: "linux"`).
+> Cask names carry a `-linux` suffix to avoid colliding with the official macOS casks (e.g. `homebrew/cask/jetbrains-toolbox`). macOS users should use the official casks; the `-linux` casks here are Linux-only (`os linux: "linux"`). Exceptions: `orca` and `saint` have no official cask, so they ship macOS (arm64 + x64 dmg) and Linux (AppImage) in one cask.
 
 ## Install
 
@@ -17,6 +17,8 @@ brew install --cask haipham22/tap/antigravity-linux
 brew install --cask haipham22/tap/antigravity-ide-linux
 brew install --cask haipham22/tap/teams-for-linux
 brew install --cask haipham22/tap/jivedb
+brew install --cask haipham22/tap/orca
+brew install --cask haipham22/tap/saint
 ```
 
 ## Casks
@@ -30,8 +32,10 @@ brew install --cask haipham22/tap/jivedb
 | `antigravity-ide-linux` | Google Antigravity IDE | `antigravity-ide` (`agy-ide`) |
 | `teams-for-linux` | Teams for Linux (unofficial MS Teams) | `teams-for-linux` |
 | `jivedb` | JiveDB (PostgreSQL/MySQL/SQLite/Redis client) | `jivedb` |
+| `orca` | Orca (agentic IDE; macOS + Linux) | `orca-ide` |
+| `saint` | Saint (workspace for coding agents; macOS + Linux) | `saint` |
 
-> **x86_64-only.** All casks ship the x86_64 build (Steam Deck + Ubuntu desktop). No arm64 — dropping it also sidesteps a current `brew bump` bug with multi-arch casks so autobump works.
+> **x86_64-only.** All Linux builds ship x86_64 (Steam Deck + Ubuntu desktop), no arm64 Linux — dropping it also sidesteps a current `brew bump` bug with multi-arch casks so autobump works.
 
 ## Ubuntu notes
 
