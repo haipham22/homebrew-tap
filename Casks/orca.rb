@@ -24,44 +24,55 @@ cask "orca" do
     artifact "orca.desktop",
              target: "#{Dir.home}/.local/share/applications/orca.desktop"
 
-    preflight do
-      appimage = "#{staged_path}/orca-linux.AppImage"
-      FileUtils.chmod 0755, appimage
-      # Wrapper: extract-and-run avoids the libfuse2 + fusermount dependency
-      # (unprivileged userns is blocked on Ubuntu 24.04, so FUSE mounts fail).
-      File.write("#{staged_path}/orca-ide", <<~EOS)
+    preflight_steps do
+      write_file "{{staged_path}}/orca-setup.sh", <<~'SH'
         #!/bin/sh
-        exec "#{appimage}" --appimage-extract-and-run --no-sandbox "$@"
-      EOS
-      FileUtils.chmod 0755, "#{staged_path}/orca-ide"
+        set -e
+        appimage="{{staged_path}}/orca-linux.AppImage"
+        chmod 0755 "$appimage"
+        # Wrapper: extract-and-run avoids the libfuse2 + fusermount dependency
+        # (unprivileged userns is blocked on Ubuntu 24.04, so FUSE mounts fail).
+        # \$@ is escaped so the inner wrapper keeps its own "$@".
+        cat > "{{staged_path}}/orca-ide" <<EOF
+        #!/bin/sh
+        exec "$appimage" --appimage-extract-and-run --no-sandbox "\$@"
+        EOF
+        chmod 0755 "{{staged_path}}/orca-ide"
 
-      # Extract only the icon from the AppImage (offset = first hsqs magic past
-      # the ELF headers). unsquashfs avoids running the AppImage at install time.
-      offset = File.open(appimage, "rb") do |f|
-        data = f.read(512_000)
-        data.index("hsqs", 186_344) || raise("squashfs offset not found")
-      end
-      system "unsquashfs", "-o", offset.to_s, "-f", "-d", "#{staged_path}/icon",
-             appimage, "usr/share/icons/hicolor/512x512/apps/orca-ide.png"
-      FileUtils.cp "#{staged_path}/icon/usr/share/icons/hicolor/512x512/apps/orca-ide.png",
-                   "#{staged_path}/orca-ide.png"
-      FileUtils.rm_r("#{staged_path}/icon")
+        # Extract only the icon from the AppImage; unsquashfs is optional, the
+        # menu entry falls back to a generic icon without it. The last "hsqs"
+        # magic wins: the ELF runtime contains a stray one before the real
+        # squashfs superblock.
+        if command -v unsquashfs >/dev/null 2>&1; then
+          offset="$(grep -abo hsqs "$appimage" | tail -n1 | cut -d: -f1)"
+          if unsquashfs -o "$offset" -f -d "{{staged_path}}/icon" "$appimage" \
+               "usr/share/icons/hicolor/512x512/apps/orca-ide.png" >/dev/null 2>&1; then
+            cp "{{staged_path}}/icon/usr/share/icons/hicolor/512x512/apps/orca-ide.png" \
+               "{{staged_path}}/orca-ide.png"
+            rm -rf "{{staged_path}}/icon"
+          fi
+        fi
 
-      FileUtils.mkdir_p "#{Dir.home}/.local/share/applications"
-      FileUtils.mkdir_p "#{Dir.home}/.local/share/icons/hicolor/512x512/apps"
-      File.write("#{staged_path}/orca.desktop", <<~EOS)
+        mkdir -p "$HOME/.local/share/applications"
+        mkdir -p "$HOME/.local/share/icons/hicolor/512x512/apps"
+        # Icon=orca-ide resolves via the hicolor theme: the artifact stanza
+        # below installs orca-ide.png into ~/.local/share/icons/hicolor/512x512/apps.
+        # ($HOME inside the brew sandbox is a redirected path, unusable here.)
+        cat > "{{staged_path}}/orca.desktop" <<EOF
         [Desktop Entry]
         Name=Orca
         Comment=Next-gen IDE for parallel agentic development
-        Exec=#{HOMEBREW_PREFIX}/bin/orca-ide %U
-        Icon=#{Dir.home}/.local/share/icons/hicolor/512x512/apps/orca-ide.png
+        Exec={{HOMEBREW_PREFIX}}/bin/orca-ide %U
+        Icon=orca-ide
         Type=Application
         StartupNotify=true
         StartupWMClass=orca
         Categories=Development;IDE;
         MimeType=x-scheme-handler/orca;
         Keywords=orca;ide;agent;ai;
-      EOS
+        EOF
+      SH
+      run "/bin/sh", args: ["{{staged_path}}/orca-setup.sh"], writable_paths: ["{{staged_path}}"]
     end
 
     zap trash: [

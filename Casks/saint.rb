@@ -24,46 +24,55 @@ cask "saint" do
     artifact "saint.desktop",
              target: "#{Dir.home}/.local/share/applications/saint.desktop"
 
-    preflight do
-      appimage = "#{staged_path}/Saint-#{version}-x86_64.AppImage"
-      FileUtils.chmod 0755, appimage
-      # Wrapper: extract-and-run avoids the libfuse2 + fusermount dependency
-      # (unprivileged userns is blocked on Ubuntu 24.04, so FUSE mounts fail).
-      File.write("#{staged_path}/saint", <<~EOS)
+    preflight_steps do
+      write_file "{{staged_path}}/saint-setup.sh", <<~'SH'
         #!/bin/sh
-        exec "#{appimage}" --appimage-extract-and-run --no-sandbox "$@"
-      EOS
-      FileUtils.chmod 0755, "#{staged_path}/saint"
+        set -e
+        appimage="{{staged_path}}/Saint-{{version}}-x86_64.AppImage"
+        chmod 0755 "$appimage"
+        # Wrapper: extract-and-run avoids the libfuse2 + fusermount dependency
+        # (unprivileged userns is blocked on Ubuntu 24.04, so FUSE mounts fail).
+        # \$@ is escaped so the inner wrapper keeps its own "$@".
+        cat > "{{staged_path}}/saint" <<EOF
+        #!/bin/sh
+        exec "$appimage" --appimage-extract-and-run --no-sandbox "\$@"
+        EOF
+        chmod 0755 "{{staged_path}}/saint"
 
-      # Extract only the icon from the AppImage. unsquashfs avoids running the
-      # AppImage at install time. rindex finds the real squashfs superblock:
-      # the ELF runtime contains a stray "hsqs" earlier in the file, so a plain
-      # index() would land on the wrong offset.
-      offset = File.open(appimage, "rb") do |f|
-        data = f.read(512_000)
-        data.rindex("hsqs") || raise("squashfs offset not found")
-      end
-      system "unsquashfs", "-o", offset.to_s, "-f", "-d", "#{staged_path}/icon",
-             appimage, "usr/share/icons/hicolor/1024x1024/apps/saint.png"
-      FileUtils.cp "#{staged_path}/icon/usr/share/icons/hicolor/1024x1024/apps/saint.png",
-                   "#{staged_path}/saint.png"
-      FileUtils.rm_r("#{staged_path}/icon")
+        # Extract only the icon from the AppImage; unsquashfs is optional, the
+        # menu entry falls back to a generic icon without it. The last "hsqs"
+        # magic wins: the ELF runtime contains a stray one before the real
+        # squashfs superblock.
+        if command -v unsquashfs >/dev/null 2>&1; then
+          offset="$(grep -abo hsqs "$appimage" | tail -n1 | cut -d: -f1)"
+          if unsquashfs -o "$offset" -f -d "{{staged_path}}/icon" "$appimage" \
+               "usr/share/icons/hicolor/1024x1024/apps/saint.png" >/dev/null 2>&1; then
+            cp "{{staged_path}}/icon/usr/share/icons/hicolor/1024x1024/apps/saint.png" \
+               "{{staged_path}}/saint.png"
+            rm -rf "{{staged_path}}/icon"
+          fi
+        fi
 
-      FileUtils.mkdir_p "#{Dir.home}/.local/share/applications"
-      FileUtils.mkdir_p "#{Dir.home}/.local/share/icons/hicolor/1024x1024/apps"
-      File.write("#{staged_path}/saint.desktop", <<~EOS)
+        mkdir -p "$HOME/.local/share/applications"
+        mkdir -p "$HOME/.local/share/icons/hicolor/1024x1024/apps"
+        # Icon=saint resolves via the hicolor theme: the artifact stanza below
+        # installs saint.png into ~/.local/share/icons/hicolor/1024x1024/apps.
+        # ($HOME inside the brew sandbox is a redirected path, unusable here.)
+        cat > "{{staged_path}}/saint.desktop" <<EOF
         [Desktop Entry]
         Name=Saint
         Comment=Saint desktop build
-        Exec=#{HOMEBREW_PREFIX}/bin/saint %U
-        Icon=#{Dir.home}/.local/share/icons/hicolor/1024x1024/apps/saint.png
+        Exec={{HOMEBREW_PREFIX}}/bin/saint %U
+        Icon=saint
         Type=Application
         StartupNotify=true
         StartupWMClass=saint
         Categories=Development;
         MimeType=x-scheme-handler/saint;
         Keywords=saint;agent;ai;
-      EOS
+        EOF
+      SH
+      run "/bin/sh", args: ["{{staged_path}}/saint-setup.sh"], writable_paths: ["{{staged_path}}"]
     end
 
     zap trash: [

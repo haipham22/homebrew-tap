@@ -29,40 +29,49 @@ cask "antigravity-linux" do
   artifact "antigravity.png",
            target: "#{Dir.home}/.local/share/icons/hicolor/512x512/apps/antigravity.png"
 
-  preflight do
-    app_root = "#{staged_path}/Antigravity-x64"
-    app_update_yml = "#{app_root}/resources/app-update.yml"
-    asar_path = "#{app_root}/resources/app.asar"
-
-    FileUtils.mkdir_p "#{Dir.home}/.local/share/applications"
-    FileUtils.mkdir_p "#{Dir.home}/.local/share/icons/hicolor/512x512/apps"
-
+  preflight_steps do
     # Disable Electron auto-update checks; Homebrew manages this install.
-    FileUtils.rm app_update_yml
-
-    # Extract the app icon from the ASAR package without requiring external tools.
-    if File.exist?(asar_path)
-      File.open(asar_path, "rb") do |asar|
-        asar.seek(8)
-        header_size = asar.read(4).unpack1("V") - 4
-        asar.seek(16)
-        header = JSON.parse(asar.read(header_size))
-        icon_entry = header.dig("files", "icon.png")
-
-        if icon_entry
-          asar.seek(16 + header_size + icon_entry["offset"].to_i)
-          File.binwrite("#{staged_path}/antigravity.png", asar.read(icon_entry["size"]))
-        end
-      end
+    if_path_exists "{{staged_path}}/Antigravity-x64/resources/app-update.yml" do
+      remove "{{staged_path}}/Antigravity-x64/resources/app-update.yml"
     end
 
-    File.write("#{staged_path}/antigravity.desktop", <<~EOS)
+    # Extract the app icon from the ASAR package without requiring external tools.
+    write_file "{{staged_path}}/antigravity-extract-icon.py", <<~PY
+      import json, struct, sys
+
+      asar = open(sys.argv[1], "rb")
+      asar.seek(8)
+      header_size = struct.unpack("<I", asar.read(4))[0] - 4
+      asar.seek(16)
+      header = json.loads(asar.read(header_size))
+      entry = header.get("files", {}).get("icon.png")
+      if entry:
+          asar.seek(16 + header_size + int(entry["offset"]))
+          open(sys.argv[2], "wb").write(asar.read(int(entry["size"])))
+    PY
+    if_path_exists "{{staged_path}}/Antigravity-x64/resources/app.asar" do
+      run "/usr/bin/python3", args: [
+        "{{staged_path}}/antigravity-extract-icon.py",
+        "{{staged_path}}/Antigravity-x64/resources/app.asar",
+        "{{staged_path}}/antigravity.png",
+      ], writable_paths: ["{{staged_path}}"]
+    end
+
+    # Create a placeholder icon if extraction fails
+    unless_path_exists "{{staged_path}}/antigravity.png" do
+      touch "{{staged_path}}/antigravity.png"
+    end
+
+    mkdir_p "~/.local/share/applications"
+    mkdir_p "~/.local/share/icons/hicolor/512x512/apps"
+
+    write_file "{{staged_path}}/antigravity.desktop", <<~EOS
       [Desktop Entry]
       Name=Antigravity
       Comment=Agent orchestration platform
       GenericName=AI Agent Platform
-      Exec="#{HOMEBREW_PREFIX}/bin/antigravity" %F
-      Icon=#{Dir.home}/.local/share/icons/hicolor/512x512/apps/antigravity.png
+      Exec="{{HOMEBREW_PREFIX}}/bin/antigravity" %F
+      Icon=antigravity
       Type=Application
       StartupNotify=false
       StartupWMClass=Antigravity
@@ -70,13 +79,13 @@ cask "antigravity-linux" do
       Keywords=antigravity;agent;ai;
     EOS
 
-    File.write("#{staged_path}/antigravity-url-handler.desktop", <<~EOS)
+    write_file "{{staged_path}}/antigravity-url-handler.desktop", <<~EOS
       [Desktop Entry]
       Name=Antigravity - URL Handler
       Comment=Agent orchestration platform
       GenericName=AI Agent Platform
-      Exec="#{HOMEBREW_PREFIX}/bin/antigravity" "%U"
-      Icon=#{Dir.home}/.local/share/icons/hicolor/512x512/apps/antigravity.png
+      Exec="{{HOMEBREW_PREFIX}}/bin/antigravity" "%U"
+      Icon=antigravity
       Type=Application
       NoDisplay=true
       Terminal=false
@@ -86,20 +95,16 @@ cask "antigravity-linux" do
       MimeType=x-scheme-handler/antigravity;
       Keywords=antigravity;
     EOS
-
-    # Create a placeholder icon if extraction fails
-    FileUtils.touch "#{staged_path}/antigravity.png" unless File.exist?("#{staged_path}/antigravity.png")
   end
 
-  postflight do
+  postflight_steps do
     # Chromium SUID sandbox: Ubuntu 24.04 blocks unprivileged user namespaces,
     # so Electron can't fall back to the userns sandbox and instead aborts unless
     # chrome-sandbox is owned by root with the setuid bit (mode 4755). SteamOS
     # allows userns, so this is a no-op there. Requires sudo at install time.
-    sandbox = "#{staged_path}/Antigravity-x64/chrome-sandbox"
-    if File.exist?(sandbox)
-      system "sudo", "chown", "root:root", sandbox
-      system "sudo", "chmod", "4755", sandbox
+    if_path_exists "{{staged_path}}/Antigravity-x64/chrome-sandbox" do
+      set_ownership "{{staged_path}}/Antigravity-x64/chrome-sandbox", user: "root", group: "root"
+      set_permissions "{{staged_path}}/Antigravity-x64/chrome-sandbox", "4755", recursive: false
     end
   end
 

@@ -26,23 +26,30 @@ cask "visual-studio-code-linux" do
   artifact "VSCode-linux-x64/code-url-handler.desktop",
            target: "#{Dir.home}/.local/share/applications/code-url-handler.desktop"
 
-  preflight do
+  preflight_steps do
     # Disable VS Code's built-in update checks; Homebrew manages this install.
-    product_json = "#{staged_path}/VSCode-linux-x64/resources/app/product.json"
-    product = JSON.parse(File.read(product_json))
-    product.delete("updateUrl")
-    product["configurationDefaults"] ||= {}
-    product["configurationDefaults"]["update.mode"] = "none"
-    File.write(product_json, JSON.pretty_generate(product))
+    write_file "{{staged_path}}/vscode-update-config.py", <<~PY
+      import json, sys
 
-    FileUtils.mkdir_p "#{Dir.home}/.local/share/applications"
-    File.write("#{staged_path}/VSCode-linux-x64/code.desktop", <<~EOS)
+      path = sys.argv[1]
+      config = json.load(open(path))
+      config.pop("updateUrl", None)
+      config.setdefault("configurationDefaults", {})["update.mode"] = "none"
+      json.dump(config, open(path, "w"), indent=2)
+    PY
+    run "/usr/bin/python3", args: [
+      "{{staged_path}}/vscode-update-config.py",
+      "{{staged_path}}/VSCode-linux-x64/resources/app/product.json",
+    ], writable_paths: ["{{staged_path}}"]
+
+    mkdir_p "~/.local/share/applications"
+    write_file "{{staged_path}}/VSCode-linux-x64/code.desktop", <<~EOS
       [Desktop Entry]
       Name=Visual Studio Code
       Comment=Code Editing. Redefined.
       GenericName=Text Editor
-      Exec=#{HOMEBREW_PREFIX}/bin/code %F
-      Icon=#{staged_path}/VSCode-linux-x64/resources/app/resources/linux/code.png
+      Exec={{HOMEBREW_PREFIX}}/bin/code %F
+      Icon={{staged_path}}/VSCode-linux-x64/resources/app/resources/linux/code.png
       Type=Application
       StartupNotify=false
       StartupWMClass=Code
@@ -53,16 +60,16 @@ cask "visual-studio-code-linux" do
 
       [Desktop Action new-empty-window]
       Name=New Empty Window
-      Exec=#{HOMEBREW_PREFIX}/bin/code --new-window %F
-      Icon=#{staged_path}/VSCode-linux-x64/resources/app/resources/linux/code.png
+      Exec={{HOMEBREW_PREFIX}}/bin/code --new-window %F
+      Icon={{staged_path}}/VSCode-linux-x64/resources/app/resources/linux/code.png
     EOS
-    File.write("#{staged_path}/VSCode-linux-x64/code-url-handler.desktop", <<~EOS)
+    write_file "{{staged_path}}/VSCode-linux-x64/code-url-handler.desktop", <<~EOS
       [Desktop Entry]
       Name=Visual Studio Code - URL Handler
       Comment=Code Editing. Redefined.
       GenericName=Text Editor
-      Exec=#{HOMEBREW_PREFIX}/bin/code --open-url %U
-      Icon=#{staged_path}/VSCode-linux-x64/resources/app/resources/linux/code.png
+      Exec={{HOMEBREW_PREFIX}}/bin/code --open-url %U
+      Icon={{staged_path}}/VSCode-linux-x64/resources/app/resources/linux/code.png
       Type=Application
       NoDisplay=true
       StartupNotify=true

@@ -32,26 +32,36 @@ cask "antigravity-ide-linux" do
   artifact "Antigravity IDE/resources/app/resources/linux/code.png",
            target: "#{Dir.home}/.local/share/icons/hicolor/512x512/apps/antigravity-ide.png"
 
-  preflight do
-    product_json = "#{staged_path}/Antigravity IDE/resources/app/product.json"
-    if File.exist?(product_json)
-      product = JSON.parse(File.read(product_json))
-      product.delete("updateUrl")
-      product["configurationDefaults"] ||= {}
-      product["configurationDefaults"]["update.mode"] = "none"
-      File.write(product_json, JSON.pretty_generate(product))
+  preflight_steps do
+    # Disable the IDE's built-in update checks; Homebrew manages this install.
+    write_file "{{staged_path}}/antigravity-ide-update-config.py", <<~PY
+      import json, sys
+
+      path = sys.argv[1]
+      config = json.load(open(path))
+      config.pop("updateUrl", None)
+      config.setdefault("configurationDefaults", {})["update.mode"] = "none"
+      json.dump(config, open(path, "w"), indent=2)
+    PY
+    if_path_exists "{{staged_path}}/Antigravity IDE/resources/app/product.json" do
+      run "/usr/bin/python3", args: [
+        "{{staged_path}}/antigravity-ide-update-config.py",
+        "{{staged_path}}/Antigravity IDE/resources/app/product.json",
+      ], writable_paths: ["{{staged_path}}"]
     end
 
-    FileUtils.mkdir_p "#{Dir.home}/.local/share/applications"
-    FileUtils.mkdir_p "#{Dir.home}/.local/share/icons/hicolor/512x512/apps"
+    mkdir_p "~/.local/share/applications"
+    mkdir_p "~/.local/share/icons/hicolor/512x512/apps"
 
-    File.write("#{staged_path}/antigravity-ide.desktop", <<~EOS)
+    # Icon=antigravity-ide resolves via the hicolor theme; the artifact above
+    # installs the PNG into ~/.local/share/icons/hicolor/512x512/apps.
+    write_file "{{staged_path}}/antigravity-ide.desktop", <<~EOS
       [Desktop Entry]
       Name=Antigravity IDE
       Comment=AI Coding Agent IDE
       GenericName=Text Editor
-      Exec="#{HOMEBREW_PREFIX}/bin/antigravity-ide" %F
-      Icon=#{Dir.home}/.local/share/icons/hicolor/512x512/apps/antigravity-ide.png
+      Exec="{{HOMEBREW_PREFIX}}/bin/antigravity-ide" %F
+      Icon=antigravity-ide
       Type=Application
       StartupNotify=false
       StartupWMClass=Antigravity IDE
@@ -62,17 +72,17 @@ cask "antigravity-ide-linux" do
 
       [Desktop Action new-empty-window]
       Name=New Empty Window
-      Exec="#{HOMEBREW_PREFIX}/bin/antigravity-ide" --new-window %F
-      Icon=#{Dir.home}/.local/share/icons/hicolor/512x512/apps/antigravity-ide.png
+      Exec="{{HOMEBREW_PREFIX}}/bin/antigravity-ide" --new-window %F
+      Icon=antigravity-ide
     EOS
 
-    File.write("#{staged_path}/antigravity-ide-url-handler.desktop", <<~EOS)
+    write_file "{{staged_path}}/antigravity-ide-url-handler.desktop", <<~EOS
       [Desktop Entry]
       Name=Antigravity IDE - URL Handler
       Comment=AI Coding Agent IDE
       GenericName=Text Editor
-      Exec="#{HOMEBREW_PREFIX}/bin/antigravity-ide" --open-url "%U"
-      Icon=#{Dir.home}/.local/share/icons/hicolor/512x512/apps/antigravity-ide.png
+      Exec="{{HOMEBREW_PREFIX}}/bin/antigravity-ide" --open-url "%U"
+      Icon=antigravity-ide
       Type=Application
       NoDisplay=true
       Terminal=false
@@ -84,16 +94,17 @@ cask "antigravity-ide-linux" do
     EOS
   end
 
-  postflight do
+  postflight_steps do
     # Chromium SUID sandbox: see antigravity-linux. Ubuntu 24.04 blocks
     # unprivileged userns, so Electron needs chrome-sandbox owned by root
     # with mode 4755 or it aborts on launch. No-op on SteamOS.
-    app_root = "#{staged_path}/Antigravity IDE"
-    sandbox = ["#{app_root}/chrome-sandbox", "#{app_root}/bin/chrome-sandbox"]
-              .find { |p| File.exist?(p) }
-    if sandbox
-      system "sudo", "chown", "root:root", sandbox
-      system "sudo", "chmod", "4755", sandbox
+    if_path_exists "{{staged_path}}/Antigravity IDE/chrome-sandbox" do
+      set_ownership "{{staged_path}}/Antigravity IDE/chrome-sandbox", user: "root", group: "root"
+      set_permissions "{{staged_path}}/Antigravity IDE/chrome-sandbox", "4755", recursive: false
+    end
+    if_path_exists "{{staged_path}}/Antigravity IDE/bin/chrome-sandbox" do
+      set_ownership "{{staged_path}}/Antigravity IDE/bin/chrome-sandbox", user: "root", group: "root"
+      set_permissions "{{staged_path}}/Antigravity IDE/bin/chrome-sandbox", "4755", recursive: false
     end
   end
 

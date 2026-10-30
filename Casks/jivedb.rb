@@ -20,15 +20,17 @@ cask "jivedb" do
   artifact "jivedb.desktop",
            target: "#{Dir.home}/.local/share/applications/jivedb.desktop"
 
-  preflight do
-    FileUtils.mkdir_p "#{Dir.home}/.local/share/applications"
-    FileUtils.mkdir_p "#{Dir.home}/.local/share/icons/hicolor/512x512/apps"
-    File.write("#{staged_path}/jivedb.desktop", <<~EOS)
+  preflight_steps do
+    mkdir_p "~/.local/share/applications"
+    mkdir_p "~/.local/share/icons/hicolor/512x512/apps"
+    # Icon=jivedb resolves via the hicolor theme; the artifact above installs
+    # the PNG into ~/.local/share/icons/hicolor/512x512/apps.
+    write_file "{{staged_path}}/jivedb.desktop", <<~EOS
       [Desktop Entry]
       Name=JiveDB
       Comment=Database client for PostgreSQL, MySQL, SQLite and Redis
-      Exec=#{HOMEBREW_PREFIX}/bin/jivedb %F
-      Icon=#{Dir.home}/.local/share/icons/hicolor/512x512/apps/jivedb.png
+      Exec={{HOMEBREW_PREFIX}}/bin/jivedb %F
+      Icon=jivedb
       Type=Application
       StartupNotify=true
       StartupWMClass=JiveDB
