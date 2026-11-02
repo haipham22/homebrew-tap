@@ -12,6 +12,7 @@ cask "orca" do
   end
 
   if OS.mac?
+    depends_on macos: :monterey
     url "https://github.com/stablyai/orca/releases/download/v#{version}/orca-macos#{arch}.dmg"
     app "Orca.app"
     zap trash: [
