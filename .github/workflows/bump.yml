@@ -11,7 +11,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  bump:
+  bump-linux:
     runs-on: ubuntu-24.04
     steps:
       - name: Set up Homebrew
@@ -45,6 +45,51 @@ jobs:
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: brew bump --tap ${{ github.repository }} --open-pr --no-fork || true
 
+  bump-macos:
+    runs-on: macos-15
+    steps:
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@6315ef70a8bfcd2c71104383846591ac113ace33
+
+      - name: Configure git
+        uses: Homebrew/actions/git-user-config@6315ef70a8bfcd2c71104383846591ac113ace33
+
+      - name: Checkout homebrew-core (cross-reference for brew bump)
+        uses: actions/checkout@v5
+        with:
+          repository: Homebrew/homebrew-core
+          path: homebrew-core
+          fetch-depth: 1
+          sparse-checkout: |
+            Formula/
+
+      - name: Move homebrew-core to tap directory
+        run: |
+          BREW_REPO="$(brew --repo)"
+          CORE_TAP="$BREW_REPO/Library/Taps/homebrew/homebrew-core"
+          mkdir -p "$(dirname "$CORE_TAP")"
+          rm -rf "$CORE_TAP"
+          mv homebrew-core "$CORE_TAP"
+
+      - name: Bump multi-OS casks (orca, saint)
+        # orca and saint ship macOS dmg + Linux AppImage in one cask: on a
+        # Linux runner brew bump computes the macOS checksums from the
+        # AppImage download and brew style rejects the identical hashes, so
+        # only a macOS runner can bump them.
+        env:
+          HOMEBREW_DEVELOPER: 1
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          brew bump ${{ github.repository_owner }}/tap/orca
+          ${{ github.repository_owner }}/tap/saint
+          --open-pr --no-fork || true
+
+  merge-prs:
+    needs: [bump-linux, bump-macos]
+    # One bump job failing shouldn't strand the other job's branches.
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    steps:
       - name: Merge PRs for bump-* branches (gh fallback)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
