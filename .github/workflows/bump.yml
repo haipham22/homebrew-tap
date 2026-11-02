@@ -54,35 +54,36 @@ jobs:
       - name: Configure git
         uses: Homebrew/actions/git-user-config@6315ef70a8bfcd2c71104383846591ac113ace33
 
-      - name: Checkout homebrew-core (cross-reference for brew bump)
-        uses: actions/checkout@v5
-        with:
-          repository: Homebrew/homebrew-core
-          path: homebrew-core
-          fetch-depth: 1
-          sparse-checkout: |
-            Formula/
-
-      - name: Move homebrew-core to tap directory
-        run: |
-          BREW_REPO="$(brew --repo)"
-          CORE_TAP="$BREW_REPO/Library/Taps/homebrew/homebrew-core"
-          mkdir -p "$(dirname "$CORE_TAP")"
-          rm -rf "$CORE_TAP"
-          mv homebrew-core "$CORE_TAP"
-
       - name: Bump multi-OS casks (orca, saint)
-        # orca and saint ship macOS dmg + Linux AppImage in one cask: on a
-        # Linux runner brew bump computes the macOS checksums from the
-        # AppImage download and brew style rejects the identical hashes, so
-        # only a macOS runner can bump them.
+        # brew bump cannot be used for these two: (1) they ship macOS dmg +
+        # Linux AppImage in one cask, and on a Linux runner its macOS
+        # checksums are computed from the AppImage download, so brew style
+        # rejects the identical hashes; (2) brew bump hands bump-cask-pr a
+        # bare token, and bare "orca" resolves to homebrew/cask's disabled
+        # plotly cask whose URL then 404s — a tap-qualified name dodges both.
         env:
           HOMEBREW_DEVELOPER: 1
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: >-
-          brew bump ${{ github.repository_owner }}/tap/orca
-          ${{ github.repository_owner }}/tap/saint
-          --open-pr --no-fork || true
+        run: |
+          set -uo pipefail
+          for cask in orca saint; do
+            full="haipham22/tap/$cask"
+            state="$(brew livecheck --cask "$full" --json 2>/dev/null | jq -r '.[0].version // "{}"')"
+            cur="$(jq -r '.current // ""' <<<"$state")"
+            latest="$(jq -r '.latest // ""' <<<"$state")"
+            if [[ -z "$latest" ]]; then
+              echo "::warning::$cask: livecheck found no version, skipping"
+              continue
+            fi
+            if [[ "$latest" == "$cur" ]]; then
+              echo "$cask: up to date ($cur)"
+              continue
+            fi
+            echo "$cask: bumping $cur -> $latest"
+            brew bump-cask-pr "$full" --version="$latest" --no-fork --no-browse \
+              --message="Created by \`brew bump\`." \
+              || echo "::warning::$cask: bump-cask-pr failed, left for next run"
+          done
 
   merge-prs:
     needs: [bump-linux, bump-macos]
