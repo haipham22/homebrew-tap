@@ -17,6 +17,7 @@ brew install --cask haipham22/tap/antigravity-linux
 brew install --cask haipham22/tap/antigravity-ide-linux
 brew install --cask haipham22/tap/teams-for-linux
 brew install --cask haipham22/tap/jivedb
+brew install --cask haipham22/tap/fmess
 brew install --cask haipham22/tap/orca
 brew install --cask haipham22/tap/saint
 ```
@@ -32,6 +33,7 @@ brew install --cask haipham22/tap/saint
 | `antigravity-ide-linux` | Google Antigravity IDE | `antigravity-ide` (`agy-ide`) |
 | `teams-for-linux` | Teams for Linux (unofficial MS Teams) | `teams-for-linux` |
 | `jivedb` | JiveDB (PostgreSQL/MySQL/SQLite/Redis client) | `jivedb` |
+| `fmess` | fMess (Linux; use [toanbku/tap/fmess](https://github.com/toanbku/homebrew-tap) on macOS) | `fmess` |
 | `orca` | Orca (agentic IDE; macOS + Linux) | `orca-ide` |
 | `saint` | Saint (workspace for coding agents; macOS + Linux) | `saint` |
 
