@@ -1,9 +1,9 @@
 cask "saint" do
   arch arm: "-arm64", intel: "-x64"
 
-  version "1.1.5"
-  sha256 arm:          "76339f82ffff29879aca26b36dbd626832c84f102656102675213234e96bd169",
-         intel:        "a957657d2f6b008d6305963c0d84cc0630deff42d46aa33691220ec39ff153ed",
+  version "1.1.12"
+  sha256 arm:          "2b4a5ff7cfe0d53537f26bced06f404952d12a9b5e06f37fd6d8d631c02fea1a",
+         intel:        "be35597d7b0a430649a61eb39e138936cc0c1c8b3eb45357277a40ca29c6ff6c",
          x86_64_linux: "cb6c84c720762ffdd050829d0fd534b7ad12f0e8cac7a5d518e551742fb042c4"
 
   # No linux-arm build upstream; declare it so brew bump stops probing that arch.
