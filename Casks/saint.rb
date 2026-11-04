@@ -4,7 +4,7 @@ cask "saint" do
   version "1.1.12"
   sha256 arm:          "2b4a5ff7cfe0d53537f26bced06f404952d12a9b5e06f37fd6d8d631c02fea1a",
          intel:        "be35597d7b0a430649a61eb39e138936cc0c1c8b3eb45357277a40ca29c6ff6c",
-         x86_64_linux: "cb6c84c720762ffdd050829d0fd534b7ad12f0e8cac7a5d518e551742fb042c4"
+         x86_64_linux: "93d58b4565610db1a8dba70010c6b40c41810634df5e4c4302558a8af2d7d89a"
 
   # No linux-arm build upstream; declare it so brew bump stops probing that arch.
   on_linux do
@@ -34,14 +34,17 @@ cask "saint" do
       write_file "{{staged_path}}/saint-setup.sh", <<~'SH'
         #!/bin/sh
         set -e
-        appimage="{{staged_path}}/Saint-{{version}}-x86_64.AppImage"
+        stage="{{staged_path}}"
+        appimage_name="$(find "$stage" -maxdepth 1 -type f -name 'Saint-*.AppImage' -printf '%f\n' | sort -V | tail -n1)"
+        [ -n "$appimage_name" ] || exit 1
+        appimage="$stage/$appimage_name"
         chmod 0755 "$appimage"
         # Wrapper: extract-and-run avoids the libfuse2 + fusermount dependency
         # (unprivileged userns is blocked on Ubuntu 24.04, so FUSE mounts fail).
         # \$@ is escaped so the inner wrapper keeps its own "$@".
         cat > "{{staged_path}}/saint" <<EOF
         #!/bin/sh
-        exec "$appimage" --appimage-extract-and-run --no-sandbox "\$@"
+        exec "$appimage" --appimage-extract-and-run --no-sandbox --class=saint --ozone-platform=x11 "\$@"
         EOF
         chmod 0755 "{{staged_path}}/saint"
 
