@@ -12,6 +12,7 @@ cask "saint" do
   end
 
   if OS.mac?
+    depends_on macos: :ventura
     url "https://github.com/Locotine/saint-hyper-agent/releases/download/v#{version}/Saint-#{version}#{arch}.dmg"
     app "Saint.app"
     zap trash: [
