@@ -89,8 +89,13 @@ text = path.read_text()
 text, version_count = re.subn(
     r'^  version "[^"]+"$', f'  version "{version}"', text, count=1, flags=re.M
 )
-for arch, digest in (("arm", arm_sha), ("intel", intel_sha), ("x86_64_linux", linux_sha)):
-    key = f"sha256 {arch}:" if arch in {"arm", "intel"} else f"{arch}:"
+checksum_keys = {
+    "arm": "sha256 arm:",
+    "intel": "intel:",
+    "x86_64_linux": "x86_64_linux:",
+}
+for arch, digest in checksum_keys.items():
+    key = checksum_keys[arch]
     pattern = rf'(?m)^(\s*{key}\s*)"[^"]+"'
     text, count = re.subn(pattern, rf'\1"{digest}"', text, count=1)
     if count != 1:
