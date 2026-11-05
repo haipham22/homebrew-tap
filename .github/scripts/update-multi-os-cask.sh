@@ -97,7 +97,9 @@ checksum_keys = {
 for arch, digest in checksum_keys.items():
     key = checksum_keys[arch]
     pattern = rf'(?m)^(\s*{key}\s*)"[^"]+"'
-    text, count = re.subn(pattern, rf'\1"{digest}"', text, count=1)
+    text, count = re.subn(
+        pattern, lambda match: f'{match.group(1)}"{digest}"', text, count=1
+    )
     if count != 1:
         raise SystemExit(f"could not update {arch} checksum in {path}")
 if version_count != 1:
