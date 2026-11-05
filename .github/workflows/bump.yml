@@ -81,7 +81,7 @@ jobs:
         run: |
           set -uo pipefail
           failed=0
-          for cask in orca saint; do
+          for cask in neovim orca saint; do
             if bash .github/scripts/update-multi-os-cask.sh --cask "$cask"; then
               continue
             fi

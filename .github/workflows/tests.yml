@@ -120,6 +120,7 @@ jobs:
           probe fmess                     fmess
           probe jetbrains-toolbox-linux   jetbrains-toolbox
           probe jivedb                    jivedb
+          probe neovim                    nvim
           probe orca                      orca-ide
           probe saint                     saint
           probe teams-for-linux           teams-for-linux

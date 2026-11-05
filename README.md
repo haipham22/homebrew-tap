@@ -4,7 +4,7 @@ Personal [Homebrew](https://brew.sh) tap — **Linux casks** for **Ubuntu** and 
 
 These are Linux GUI-app casks (VS Code, JetBrains Toolbox, 1Password, Google Antigravity) — the kind of apps that don't run well as Flatpaks. The casks are ported from [ublue-os/homebrew-tap](https://github.com/ublue-os/homebrew-tap) and tuned to also work on plain Ubuntu (not just immutable distros).
 
-> Cask names carry a `-linux` suffix to avoid colliding with the official macOS casks (e.g. `homebrew/cask/jetbrains-toolbox`). macOS users should use the official casks; the `-linux` casks here are Linux-only (`os linux: "linux"`). Exceptions: `orca` and `saint` have no official cask, so they ship macOS (arm64 + x64 dmg) and Linux (AppImage) in one cask.
+> Cask names carry a `-linux` suffix to avoid colliding with the official macOS casks (e.g. `homebrew/cask/jetbrains-toolbox`). macOS users should use the official casks; the `-linux` casks here are Linux-only (`os linux: "linux"`). Exceptions: `neovim`, `orca`, and `saint` ship macOS and Linux in one cask (`neovim` uses the upstream pre-built archives documented at [neovim.io/doc/install](https://neovim.io/doc/install/)).
 
 ## Install
 
@@ -16,6 +16,7 @@ brew install --cask haipham22/tap/1password-gui-linux
 brew install --cask haipham22/tap/antigravity-linux
 brew install --cask haipham22/tap/antigravity-ide-linux
 brew install --cask haipham22/tap/teams-for-linux
+brew install --cask haipham22/tap/neovim
 brew install --cask haipham22/tap/jivedb
 brew install --cask haipham22/tap/fmess
 brew install --cask haipham22/tap/orca
@@ -32,12 +33,15 @@ brew install --cask haipham22/tap/saint
 | `antigravity-linux` | Google Antigravity (hub) | `antigravity` |
 | `antigravity-ide-linux` | Google Antigravity IDE | `antigravity-ide` (`agy-ide`) |
 | `teams-for-linux` | Teams for Linux (unofficial MS Teams) | `teams-for-linux` |
+| `neovim` | Neovim (macOS + Linux x86_64; upstream pre-built archives) | `nvim` |
 | `jivedb` | JiveDB (PostgreSQL/MySQL/SQLite/Redis client) | `jivedb` |
 | `fmess` | fMess (Linux; use [toanbku/tap/fmess](https://github.com/toanbku/homebrew-tap) on macOS) | `fmess` |
 | `orca` | Orca (agentic IDE; macOS + Linux) | `orca-ide` |
 | `saint` | Saint (workspace for coding agents; macOS + Linux) | `saint` |
 
 > **x86_64-only.** All Linux builds ship x86_64 (Steam Deck + Ubuntu desktop), no arm64 Linux — dropping it also sidesteps a current `brew bump` bug with multi-arch casks so autobump works.
+
+> **Neovim formula collision.** Homebrew core also ships a source-built `neovim` formula. If it is already installed and linked, remove that first (`brew uninstall --formula neovim`) before installing this pre-built cask.
 
 ## Ubuntu notes
 
@@ -72,7 +76,7 @@ The `1password-gui-linux` cask runs a `postflight` that needs **sudo** (creates 
 
 ## Auto-updates
 
-A scheduled workflow (`.github/workflows/bump.yml`) runs daily. The Ubuntu job bumps Linux-only casks. A macOS job updates `orca` and `saint` with checksums for every platform, because they ship macOS DMGs plus a Linux AppImage in one cask and `brew bump-cask-pr` only computes checksums for the runner platform. Automated PRs wait for CI, and merging retries transient GitHub API failures. CI audits and installs only the casks changed by a pull request, so an unrelated upstream release does not turn an otherwise valid bump red.
+A scheduled workflow (`.github/workflows/bump.yml`) runs daily. The Ubuntu job bumps Linux-only casks. A macOS job updates `neovim`, `orca`, and `saint` with checksums for every platform, because they ship macOS plus Linux archives/AppImages in one cask and `brew bump-cask-pr` only computes checksums for the runner platform. Automated PRs wait for CI, and merging retries transient GitHub API failures. CI audits and installs only the casks changed by a pull request, so an unrelated upstream release does not turn an otherwise valid bump red.
 
 ```bash
 brew livecheck --tap haipham22/tap           # check all casks manually

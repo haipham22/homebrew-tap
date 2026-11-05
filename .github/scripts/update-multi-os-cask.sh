@@ -51,6 +51,13 @@ case "$cask" in
     mac_intel_asset="orca-macos-x64.dmg"
     linux_asset="orca-linux.AppImage"
     ;;
+  neovim)
+    repository="neovim/neovim"
+    tag="v${latest}"
+    mac_arm_asset="nvim-macos-arm64.tar.gz"
+    mac_intel_asset="nvim-macos-x86_64.tar.gz"
+    linux_asset="nvim-linux-x86_64.tar.gz"
+    ;;
   *)
     echo "::error::$cask is not a known multi-OS cask"
     exit 1
