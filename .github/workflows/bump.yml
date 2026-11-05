@@ -43,7 +43,7 @@ jobs:
         # checksums for the runner platform, leaving the other platform stale.
         env:
           HOMEBREW_DEVELOPER: 1
-          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.AUTOBUMP_PAT || secrets.GITHUB_TOKEN }}
         run: |
           brew bump --tap "${{ github.repository }}" --cask --open-pr --no-fork \
             1password-gui-linux \
@@ -65,6 +65,8 @@ jobs:
         uses: Homebrew/actions/git-user-config@6315ef70a8bfcd2c71104383846591ac113ace33
 
       - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.AUTOBUMP_PAT || secrets.GITHUB_TOKEN }}
 
       - name: Register this checkout as the tap
         run: |
@@ -75,7 +77,7 @@ jobs:
 
       - name: Update multi-OS casks with all platform checksums
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.AUTOBUMP_PAT || secrets.GITHUB_TOKEN }}
         run: |
           set -uo pipefail
           failed=0
@@ -96,7 +98,7 @@ jobs:
     steps:
       - name: Merge bump PRs after checks
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.AUTOBUMP_PAT || secrets.GITHUB_TOKEN }}
         run: |
           mapfile -t rows < <(
             gh pr list --repo "${{ github.repository }}" --state open --json number,headRefName \

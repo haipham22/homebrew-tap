@@ -78,6 +78,8 @@ A scheduled workflow (`.github/workflows/bump.yml`) runs daily. The Ubuntu job b
 brew livecheck --tap haipham22/tap           # check all casks manually
 ```
 
+> Optional but recommended: set an `AUTOBUMP_PAT` repository secret with a fine-grained token that can push branches and manage pull requests. PRs created by the built-in `GITHUB_TOKEN` can put `pull_request` workflow runs into the manual-approval queue; a PAT avoids that.
+
 ## Credits
 
 Casks are adapted from [ublue-os/homebrew-tap](https://github.com/ublue-os/homebrew-tap) (Universal Blue). Go star their tap.
