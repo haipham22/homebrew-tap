@@ -37,13 +37,23 @@ jobs:
           rm -rf "$CORE_TAP"
           mv homebrew-core "$CORE_TAP"
 
-      - name: Bump outdated casks (push branches)
-        # `--open-pr` pushes a bump-<cask>-<ver> branch per outdated cask and
-        # opens its own PR when it can. `|| true` so the merge step still runs.
+      - name: Bump Linux-only casks (push branches)
+        # Saint and Orca are handled by bump-macos because their casks contain
+        # checksums for both platforms. `brew bump-cask-pr` computes only the
+        # checksums for the runner platform, leaving the other platform stale.
         env:
           HOMEBREW_DEVELOPER: 1
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: brew bump --tap ${{ github.repository }} --open-pr --no-fork || true
+        run: |
+          brew bump --tap "${{ github.repository }}" --cask --open-pr --no-fork \
+            1password-gui-linux \
+            antigravity-ide-linux \
+            antigravity-linux \
+            fmess \
+            jetbrains-toolbox-linux \
+            jivedb \
+            teams-for-linux \
+            visual-studio-code-linux
 
   bump-macos:
     runs-on: macos-15
@@ -54,36 +64,29 @@ jobs:
       - name: Configure git
         uses: Homebrew/actions/git-user-config@6315ef70a8bfcd2c71104383846591ac113ace33
 
-      - name: Bump multi-OS casks (orca, saint)
-        # brew bump cannot be used for these two: (1) they ship macOS dmg +
-        # Linux AppImage in one cask, and on a Linux runner its macOS
-        # checksums are computed from the AppImage download, so brew style
-        # rejects the identical hashes; (2) brew bump hands bump-cask-pr a
-        # bare token, and bare "orca" resolves to homebrew/cask's disabled
-        # plotly cask whose URL then 404s — a tap-qualified name dodges both.
+      - uses: actions/checkout@v5
+
+      - name: Register this checkout as the tap
+        run: |
+          TAP_DIR="$(brew --repository haipham22/tap)"
+          rm -rf "$TAP_DIR"
+          mkdir -p "$(dirname "$TAP_DIR")"
+          ln -s "$GITHUB_WORKSPACE" "$TAP_DIR"
+
+      - name: Update multi-OS casks with all platform checksums
         env:
-          HOMEBREW_DEVELOPER: 1
-          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -uo pipefail
+          failed=0
           for cask in orca saint; do
-            full="haipham22/tap/$cask"
-            state="$(brew livecheck --cask "$full" --json 2>/dev/null | jq -r '.[0].version // "{}"')"
-            cur="$(jq -r '.current // ""' <<<"$state")"
-            latest="$(jq -r '.latest // ""' <<<"$state")"
-            if [[ -z "$latest" ]]; then
-              echo "::warning::$cask: livecheck found no version, skipping"
+            if bash .github/scripts/update-multi-os-cask.sh --cask "$cask"; then
               continue
             fi
-            if [[ "$latest" == "$cur" ]]; then
-              echo "$cask: up to date ($cur)"
-              continue
-            fi
-            echo "$cask: bumping $cur -> $latest"
-            brew bump-cask-pr "$full" --version="$latest" --no-fork --no-browse \
-              --message="Created by \`brew bump\`." \
-              || echo "::warning::$cask: bump-cask-pr failed, left for next run"
+            echo "::warning::$cask: multi-OS update failed"
+            failed=1
           done
+          exit "$failed"
 
   merge-prs:
     needs: [bump-linux, bump-macos]
@@ -91,20 +94,35 @@ jobs:
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     steps:
-      - name: Merge PRs for bump-* branches (gh fallback)
+      - name: Merge bump PRs after checks
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for b in $(gh api "repos/${{ github.repository }}/branches" --jq '.[].name' | grep '^bump-'); do
-            if ! gh pr list --repo "${{ github.repository }}" --head "$b" --state open --json number | grep -q number; then
-              echo "Opening PR for $b"
-              gh pr create --repo "${{ github.repository }}" --head "$b" --base main \
-                --title "$b" --body "Automated version bump via \`brew bump\`." \
-                || { echo "::warning::gh pr create failed for $b"; continue; }
+          mapfile -t rows < <(
+            gh pr list --repo "${{ github.repository }}" --state open --json number,headRefName \
+              --jq '.[] | select(.headRefName | startswith("bump-")) | [.number, .headRefName] | @tsv'
+          )
+          failed=0
+          for row in "${rows[@]}"; do
+            number="${row//$'\t'*}"
+            branch="${row#*$'\t'}"
+            echo "Waiting for #$number ($branch)"
+            if ! gh pr checks "$number" --repo "${{ github.repository }}" --watch --interval 30 --fail-fast; then
+              echo "::error::checks failed for #$number"
+              failed=1
+              continue
             fi
-            echo "Merging PR for $b"
-            # GITHUB_TOKEN PRs don't trigger workflows, so the PR checks stay
-            # empty — merge immediately; tests.yml runs on push to main.
-            gh pr merge "$b" --repo "${{ github.repository }}" --squash --delete-branch \
-              || echo "::warning::merge failed for $b (PR left open)"
+            merged=false
+            for _ in 1 2 3; do
+              if gh pr merge "$number" --repo "${{ github.repository }}" --squash --delete-branch; then
+                merged=true
+                break
+              fi
+              sleep 10
+            done
+            if [[ "$merged" != true ]]; then
+              echo "::error::could not merge #$number"
+              failed=1
+            fi
           done
+          exit "$failed"

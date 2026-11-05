@@ -72,7 +72,7 @@ The `1password-gui-linux` cask runs a `postflight` that needs **sudo** (creates 
 
 ## Auto-updates
 
-A scheduled workflow (`.github/workflows/bump.yml`) runs `brew bump` daily: an Ubuntu job for all casks plus a macOS job for `orca` and `saint` — these ship macOS dmg + Linux AppImage in one cask, and on a Linux runner `brew bump` computes the macOS checksums from the AppImage download, so `brew style` rejects the identical hashes and only a macOS runner can bump them. Both jobs push `bump-*` branches/PRs, which are then **merged immediately** (no PAT needed, built-in `GITHUB_TOKEN`; `tests.yml` runs on push to main). PR backlog no longer accumulates.
+A scheduled workflow (`.github/workflows/bump.yml`) runs daily. The Ubuntu job bumps Linux-only casks. A macOS job updates `orca` and `saint` with checksums for every platform, because they ship macOS DMGs plus a Linux AppImage in one cask and `brew bump-cask-pr` only computes checksums for the runner platform. Automated PRs wait for CI, and merging retries transient GitHub API failures. CI audits and installs only the casks changed by a pull request, so an unrelated upstream release does not turn an otherwise valid bump red.
 
 ```bash
 brew livecheck --tap haipham22/tap           # check all casks manually

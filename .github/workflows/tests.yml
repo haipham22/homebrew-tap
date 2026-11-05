@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: Homebrew/actions/setup-homebrew@6315ef70a8bfcd2c71104383846591ac113ace33
       - name: Register this checkout as the tap
         run: |
@@ -19,17 +21,45 @@ jobs:
           ln -s "$GITHUB_WORKSPACE" "$TAP_DIR"
       - name: Install bubblewrap (brew sandbox on Linux)
         run: sudo apt-get update && sudo apt-get install -y bubblewrap
-      - name: Audit every cask
+      - name: Detect changed casks
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          BASE_REF: ${{ github.base_ref }}
         run: |
-          for c in Casks/*.rb; do
-            brew audit --cask --online "haipham22/tap/$(basename "$c" .rb)"
-          done
+          file="${RUNNER_TEMP}/changed-casks.txt"
+          : > "$file"
+
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            base="origin/${BASE_REF}"
+            git diff --name-only "${base}...HEAD" -- 'Casks/*.rb' | sort -u > "$file"
+          elif git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
+            git diff --name-only "${BEFORE_SHA}" HEAD -- 'Casks/*.rb' | sort -u > "$file"
+          elif git rev-parse -q --verify HEAD^ >/dev/null; then
+            git diff --name-only HEAD^ HEAD -- 'Casks/*.rb' | sort -u > "$file"
+          else
+            git ls-files 'Casks/*.rb' | sort -u > "$file"
+          fi
+
+          while IFS= read -r file_path; do
+            [[ -n "$file_path" && -f "$file_path" ]] || continue
+          done < "$file"
+          cat "$file"
+
+      - name: Audit changed casks
+        run: |
+          while IFS= read -r file_path; do
+            [[ -n "$file_path" ]] || continue
+            cask="$(basename "$file_path" .rb)"
+            brew audit --cask --online "haipham22/tap/$cask"
+          done < "${RUNNER_TEMP}/changed-casks.txt"
 
   install-ubuntu:
     name: install + launch probe (Ubuntu)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: Homebrew/actions/setup-homebrew@6315ef70a8bfcd2c71104383846591ac113ace33
       - name: Register this checkout as the tap
         run: |
@@ -42,7 +72,28 @@ jobs:
           sudo apt-get install -y bubblewrap xvfb \
             libxtst6 libxrender1 libxi6 libxss1 libnss3 libnspr4 \
             libasound2t64 libgbm1 libdrm2 libxkbcommon0 libfontconfig1
-      - name: Install casks + launch probe (fails on sandbox crash)
+      - name: Detect changed casks
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          file="${RUNNER_TEMP}/changed-casks.txt"
+          : > "$file"
+
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            base="origin/${BASE_REF}"
+            git diff --name-only "${base}...HEAD" -- 'Casks/*.rb' | sort -u > "$file"
+          elif git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
+            git diff --name-only "${BEFORE_SHA}" HEAD -- 'Casks/*.rb' | sort -u > "$file"
+          elif git rev-parse -q --verify HEAD^ >/dev/null; then
+            git diff --name-only HEAD^ HEAD -- 'Casks/*.rb' | sort -u > "$file"
+          else
+            git ls-files 'Casks/*.rb' | sort -u > "$file"
+          fi
+
+          cat "$file"
+
+      - name: Install changed casks + launch probe (fails on sandbox crash)
         env:
           HOMEBREW_NO_AUTO_UPDATE: 1
         run: |
@@ -50,6 +101,7 @@ jobs:
           fail=0
           probe() {
             local cask="$1" bin="$2"
+            grep -Fxq "Casks/${cask}.rb" "${RUNNER_TEMP}/changed-casks.txt" || return 0
             echo "===== $cask (bin: $bin) ====="
             brew install --cask "haipham22/tap/$cask" 2>&1 | tail -4
             echo "--- launch probe ---"
@@ -62,10 +114,14 @@ jobs:
             fi
             echo
           }
-          probe jetbrains-toolbox-linux  jetbrains-toolbox
-          probe visual-studio-code-linux code
+          probe 1password-gui-linux       1password
           probe antigravity-linux         antigravity
           probe antigravity-ide-linux     antigravity-ide
-          probe teams-for-linux           teams-for-linux
+          probe fmess                     fmess
+          probe jetbrains-toolbox-linux   jetbrains-toolbox
           probe jivedb                    jivedb
+          probe orca                      orca-ide
+          probe saint                     saint
+          probe teams-for-linux           teams-for-linux
+          probe visual-studio-code-linux  code
           exit "$fail"
