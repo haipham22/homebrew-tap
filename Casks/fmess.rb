@@ -1,8 +1,8 @@
 cask "fmess" do
   os linux: "linux"
 
-  version "0.1.29"
-  sha256 "991d530d130ea79b026f0df2b19c84c3420257471a95cd64d6d78fc45ae627ed"
+  version "0.1.33"
+  sha256 "2205f4c02e6ed21fdd961001e6f271a38378387d46ceb630252b4f8970ca6ec8"
 
   url "https://github.com/toanbku/fmess/releases/download/v#{version}/fMess_#{version}_amd64.AppImage"
   name "fMess"
