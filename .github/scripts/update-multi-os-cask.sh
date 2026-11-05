@@ -93,7 +93,13 @@ checksum_keys = {
     "intel": "intel:",
     "x86_64_linux": "x86_64_linux:",
 }
-for arch, digest in checksum_keys.items():
+release_digests = {
+    "arm": arm_sha,
+    "intel": intel_sha,
+    "x86_64_linux": linux_sha,
+}
+for arch, key in checksum_keys.items():
+    digest = release_digests[arch]
     key = checksum_keys[arch]
     pattern = rf'(?m)^(\s*{key}\s*)"[^"]+"'
     text, count = re.subn(
@@ -129,6 +135,4 @@ if [[ -z "$pr_number" ]]; then
     --base main \
     --title "$cask $latest" \
     --body "Created by the multi-OS cask updater. It updates checksums for every supported platform."
-else
-  gh pr edit "$pr_number" --title "$cask $latest"
 fi
