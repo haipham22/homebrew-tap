@@ -57,24 +57,23 @@ case "$cask" in
     ;;
 esac
 
-base_url="https://github.com/${repository}/releases/download/${tag}"
-mac_arm_url="${base_url}/${mac_arm_asset}"
-mac_intel_url="${base_url}/${mac_intel_asset}"
-linux_url="${base_url}/${linux_asset}"
+assets_json="$(gh api "repos/${repository}/releases/tags/${tag}")"
 
-hash_url() {
-  local url="$1"
-  if command -v sha256sum >/dev/null 2>&1; then
-    curl -fsSL "$url" | sha256sum | awk '{print $1}'
-  else
-    curl -fsSL "$url" | shasum -a 256 | awk '{print $1}'
-  fi
+asset_digest() {
+  local asset="$1" digest
+  digest="$(jq -r --arg name "$asset" \
+    '.assets[] | select(.name == $name) | .digest // empty' <<<"$assets_json")"
+  [[ "$digest" == sha256:* ]] || {
+    echo "::error::$cask: GitHub returned no sha256 digest for $asset" >&2
+    return 1
+  }
+  printf '%s\n' "${digest#sha256:}"
 }
 
-echo "$cask: downloading and hashing $latest"
-mac_arm_sha256="$(hash_url "$mac_arm_url")"
-mac_intel_sha256="$(hash_url "$mac_intel_url")"
-linux_sha256="$(hash_url "$linux_url")"
+echo "$cask: reading release digests for $latest"
+mac_arm_sha256="$(asset_digest "$mac_arm_asset")"
+mac_intel_sha256="$(asset_digest "$mac_intel_asset")"
+linux_sha256="$(asset_digest "$linux_asset")"
 
 cask_path="Casks/${cask}.rb"
 python3 - "$cask_path" "$latest" \
