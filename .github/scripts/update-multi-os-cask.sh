@@ -90,7 +90,7 @@ text, version_count = re.subn(
     r'^  version "[^"]+"$', f'  version "{version}"', text, count=1, flags=re.M
 )
 for arch, digest in (("arm", arm_sha), ("intel", intel_sha), ("x86_64_linux", linux_sha)):
-    pattern = rf'(?m)^(\s*{arch}:\s*)"[0-9a-f]{{64}}"$'
+    pattern = rf'(?m)^(\s*{arch}:\s*)"[0-9a-f]{{64}}"'
     text, count = re.subn(pattern, rf'\1"{digest}"', text, count=1)
     if count != 1:
         raise SystemExit(f"could not update {arch} checksum in {path}")
