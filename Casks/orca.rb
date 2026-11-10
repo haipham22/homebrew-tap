@@ -1,10 +1,10 @@
 cask "orca" do
   arch arm: "-arm64", intel: "-x64"
 
-  version "1.4.249"
-  sha256 arm:          "172d3e5b2bd36040832591bb4eb62b99bf994a1f674bee290e69cf7a18bd5b97",
-         intel:        "b371523d68fa949ae6d64df5870b17f133cb0ec824feeae4f66478fb9e1ba567",
-         x86_64_linux: "d0ab531bad644dcfd62f1ebaf10efaf727fe067b06b651c9c353d9e5654146e0"
+  version "1.4.255"
+  sha256 arm:          "7c4df2e2429c674154f0fcc61ba8e1f9efb1b4e8d3b92983d7d1494293c2421a",
+         intel:        "667c11b7dbe4da1e91fbea60d5c7921a5f30fb67c6e9f88f0a5ed48ced3c329d",
+         x86_64_linux: "d68cd943b91357c5d8c8414e7e30791bca39a20f9f6400215bb12b73d826aa26"
 
   # No linux-arm build upstream; declare it so brew bump stops probing that arch.
   on_linux do
