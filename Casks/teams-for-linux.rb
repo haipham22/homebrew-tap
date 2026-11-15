@@ -1,8 +1,8 @@
 cask "teams-for-linux" do
   os linux: "linux"
 
-  version "2.28.0"
-  sha256 "7e564834bbfcf16c6cacb45707935aa31d9143e4c7e13eedb96c78fe2dfd53d0"
+  version "2.32.0"
+  sha256 "b42232e7d6c7682ac7f438e6935cc6121aeb93d01ee8a2f0743f82c920b15a82"
 
   url "https://github.com/IsmaelMartinez/teams-for-linux/releases/download/v#{version}/teams-for-linux-#{version}.tar.gz"
   name "Teams for Linux"
